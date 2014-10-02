@@ -64,7 +64,7 @@
 
 - name: check redmine out of git repository
   git:
-    repo: https://github.com/redmine/redmine..git
+    repo: https://github.com/redmine/redmine.git
     accept_hostkey: yes
     version: "{{ redmine_checkout_version }}"
     dest: /srv/redmine
