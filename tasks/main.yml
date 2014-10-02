@@ -184,9 +184,22 @@
 #  notify:
 #    - restart redmine
 
+- name: update redmine configuration files from templates
+  template:
+    src: srv/redmine/{{ item }}
+    dest: /srv/redmine/{{ item }}
+    owner: redmine
+    group: redmine
+    mode: 0600
+  with_items:
+    - config/database.yml
+
+#  notify:
+#    - restart redmine
+
 - name: bundle install ruby gems
   sudo_user: redmine
-  shell: bundle install --deployment --without development test && touch .bundle_installed
+  shell: bundle install --without development test && touch .bundle_installed
          executable=/bin/bash
          chdir=/srv/redmine
          creates=/srv/redmine/.bundle_installed
