@@ -1,35 +1,32 @@
 ---
-gitlab_run_dir: "{{ lookup('env', 'PWD') }}"
+redmine_run_dir: "{{ lookup('env', 'PWD') }}"
 
-gitlab_root_mysql_password: "{{ lookup('password', gitlab_run_dir + '/private/credentials/root-mysql-password') }}"
-gitlab_git_mysql_password: "{{ lookup('password', gitlab_run_dir + '/private/credentials/git-mysql-password') }}"
+redmine_root_mysql_password: "{{ lookup('password', redmine_run_dir + '/private/credentials/root-mysql-password') }}"
+redmine_redmine_mysql_password: "{{ lookup('password', redmine_run_dir + '/private/credentials/redmine-mysql-password') }}"
 
-gitlab_mysql_host: localhost
+redmine_mysql_host: localhost
 
-gitlab_checkout_version: 7-2-stable
+redmine_checkout_version: 2.5-stable
 
-gitlab_hostname: localhost
-gitlab_ssh_hostname: "{{ gitlab_hostname }}"
-gitlab_ssh_port: 22
-gitlab_http_port: 80
-gitlab_https_port: 443
-gitlab_enable_ssl: true
-gitlab_require_ssl: true
+redmine_hostname: localhost
+redmine_http_port: 80
+redmine_https_port: 443
+redmine_enable_ssl: true
+redmine_require_ssl: true
 
-gitlab_ssl_cert_file: /etc/ssl/certs/gitlab.pem
-gitlab_ssl_key_file: /etc/ssl/private/gitlab.pem
+redmine_ssl_cert_file: /etc/ssl/certs/redmine.pem
+redmine_ssl_key_file: /etc/ssl/private/redmine.pem
 
-gitlab_admin_email: "git@localhost.localdomain"
-gitlab_admin_name: Administrator
-gitlab_admin_username: root
-gitlab_admin_password: password
-gitlab_admin_theme_id: "Gitlab::Theme::MARS"
+#redmine_admin_email: "git@localhost.localdomain"
+#redmine_admin_name: Administrator
+#redmine_admin_username: root
+#redmine_admin_password: password
+#redmine_admin_theme_id: "redmine::Theme::MARS"
 
-gitlab_enable_signup: false
+#redmine_enable_signup: false
 
-gitlab_enable_ldap: false
-
-gitlab_ldap_bind_dn: uid=gitlab,ou=services,dc=localhost,dc=localdomain
-gitlab_ldap_password: "{{ lookup('password', gitlab_run_dir + '/private/credentials/gitlab-ldap-password') }}"
-gitlab_ldap_password_salt: "{{ lookup('password', gitlab_run_dir + '/private/credentials/gitlab-ldap-password-salt length=4') }}"
+#redmine_enable_ldap: false
+#redmine_ldap_bind_dn: uid=redmine,ou=services,dc=localhost,dc=localdomain
+#redmine_ldap_password: "{{ lookup('password', redmine_run_dir + '/private/credentials/redmine-ldap-password') }}"
+#redmine_ldap_password_salt: "{{ lookup('password', redmine_run_dir + '/private/credentials/redmine-ldap-password-salt length=4') }}"
 

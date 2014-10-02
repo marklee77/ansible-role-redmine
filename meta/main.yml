@@ -1,7 +1,7 @@
 ---
 galaxy_info:
   author: Mark Stillwell
-  description: GitLab web service
+  description: RedMine web service
   license: GPLv2
   min_ansible_version: 1.6
   platforms:
@@ -10,5 +10,4 @@ galaxy_info:
     - trusty
   categories:
   - web
-dependencies: 
-  - marklee77.modules-extra
+dependencies: []

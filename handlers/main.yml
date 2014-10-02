@@ -1,10 +1,10 @@
 ---
-- name: restart gitlab
+- name: restart redmine
   service:
     name: "{{ item }}"
     state: restarted
   with_items:
-    - gitlab
+    - redmine
   notify:
     - restart nginx
  

@@ -1,106 +1,124 @@
 ---
-- name: ensure gitlab dependency packages are installed
+
+#   - build-essential
+#   - checkinstall
+#   - cmake
+#   - curl
+#   - libcurl4-openssl-dev
+#   - libffi-dev
+#   - libgdbm-dev
+#   - libicu-dev
+#   - libmariadbclient-dev
+#   - libncurses5-dev
+#   - libreadline-dev
+#   - libssl-dev
+#   - libxml2-dev
+#   - libxslt1-dev
+#   - libyaml-dev
+#   - redis-server
+#   - zlib1g-dev
+
+- name: ensure redmine dependency packages are installed
   apt: 
     pkg: "{{ item }}" 
     state: latest 
     update_cache: yes 
     cache_valid_time: 600
   with_items:
-    - build-essential
     - bundler
-    - checkinstall
-    - cmake
-    - curl
     - git
-    - libcurl4-openssl-dev
-    - libffi-dev
-    - libgdbm-dev
-    - libicu-dev
-    - libmariadbclient-dev
-    - libncurses5-dev
-    - libreadline-dev
-    - libssl-dev
-    - libxml2-dev
-    - libxslt1-dev
-    - libyaml-dev
     - logrotate
     - nginx
     - python-mysqldb
-    - redis-server
     - ruby1.9.1
     - ruby1.9.1-dev
-    - zlib1g-dev
 
-- name: ensure that gitlab user exists in ldap
-  ldap:
-    bind_dn: cn=admin,{{ ldap_auth_base_dn }}
-    bind_password: "{{ ldap_auth_admin_password }}"
-    entry_dn: uid=gitlab,ou=services,{{ ldap_auth_base_dn }}
-    attributes:
-      - objectClass: account
-      - objectClass: simpleSecurityObject
-      - uid: gitlab
-      - userPassword: "{{ gitlab_ldap_password|ssha_password_hash(gitlab_ldap_password_salt) }}"
-    modify_action: replace
-    state: present
-  when: gitlab_enable_ldap
-  notify:
-    - restart gitlab
+#- name: ensure that redmine user exists in ldap
+#  ldap:
+#    bind_dn: cn=admin,{{ ldap_auth_base_dn }}
+#    bind_password: "{{ ldap_auth_admin_password }}"
+#    entry_dn: uid=redmine,ou=services,{{ ldap_auth_base_dn }}
+#    attributes:
+#      - objectClass: account
+#      - objectClass: simpleSecurityObject
+#      - uid: redmine
+#      - userPassword: "{{ redmine_ldap_password|ssha_password_hash(redmine_ldap_password_salt) }}"
+#    modify_action: replace
+#    state: present
+#  when: redmine_enable_ldap
+#  notify:
+#    - restart redmine
 
-- name: ensure that git group exists
+- name: ensure that redmine group exists
   group:
-    name: git
+    name: redmine
     state: present
 
-- name: ensure that git user exits
+- name: ensure that redmine user exits
   user:
-    name: git
-    group: git
-    home: /home/git
-    createhome: yes
+    name: redmine
+    group: redmine
+    home: /srv/redmine
+    createhome: no
     state: present
 
-- name: update /home/git/.gitconfig from template
-  template:
-    src: home/git/.gitconfig
-    dest: /home/git/.gitconfig
-    owner: git
-    group: git
-    mode: 0600
+- name: check redmine out of git repository
+  git:
+    repo: https://github.com/redmine/redmine..git
+    accept_hostkey: yes
+    version: "{{ redmine_checkout_version }}"
+    dest: /srv/redmine
+    update: no
 
-- name: ensure /srv/git exists and links to /home/git
+- name: ensure publicly /srv/redmine exists and has correct ownership
   file:
-    path: /srv/git
-    src: /home/git
-    force: yes
-    state: link
+    path: /srv/redmine
+    owner: redmine
+    group: redmine
+    recurse: yes
+    state: directory
 
-- name: ensure gitlabhq_production database is present
+#- name: update /home/git/.gitconfig from template
+#  template:
+#    src: home/git/.gitconfig
+#    dest: /home/git/.gitconfig
+#    owner: git
+#    group: git
+#    mode: 0600
+
+#- name: ensure /srv/git exists and links to /home/git
+#  file:
+#    path: /srv/git
+#    src: /home/git
+#    force: yes
+#    state: link
+
+- name: ensure redmine database is present
   mysql_db: 
-    login_host: "{{ gitlab_mysql_host }}"
+    login_host: "{{ redmine_mysql_host }}"
     login_user: root
-    login_password: "{{ gitlab_root_mysql_password }}"
-    name: gitlabhq_production
+    login_password: "{{ redmine_root_mysql_password }}"
+    name: redmine
 
-- name: ensure git database user is present
+- name: ensure redmine database user is present
   mysql_user: 
-    login_host: "{{ gitlab_mysql_host }}"
+    login_host: "{{ redmine_mysql_host }}"
     login_user: root
-    login_password: "{{ gitlab_root_mysql_password }}"
-    name: git
+    login_password: "{{ redmine_root_mysql_password }}"
+    name: redmine
     host: "{{ item }}" 
-    password: "{{ gitlab_git_mysql_password }}" 
-    priv: gitlabhq_production.*:ALL
+    password: "{{ redmine_redmine_mysql_password }}" 
+    priv: redmine.*:ALL
   with_items:
     - "%"
     - localhost
 
-- name: update /home/git/.my.cnf from template
+- name: update /srv/.my.cnf from template
   template:
-    src: home/git/.my.cnf
-    dest: /home/git/.my.cnf
-    owner: git
-    group: git
+    src: srv/redmine/.my.cnf
+    dest: /srv/redmine/.my.cnf
+    owner: redmine
+    group: redmine
     mode: 0600
 
 - name: ensure that the system ruby points to 1.9.1
@@ -115,140 +133,138 @@
     link: /usr/bin/gem
     path: /usr/bin/gem1.9.1
 
-- name: check gitlab out of git repository
-  sudo_user: git
-  git:
-    repo: https://gitlab.com/gitlab-org/gitlab-ce.git
-    accept_hostkey: yes
-    version: "{{ gitlab_checkout_version }}"
-    dest: /home/git/gitlab
-    update: no
+#- name: ensure publicly accessible redmine subdirectories exist and have correct permissions
+#  file:
+#    path: "{{ item }}"
+#    owner: git
+#    group: git
+#    mode: 0755
+#    state: directory
+#  with_items:
+#    - /home/git/redmine/tmp
+#    - /home/git/redmine/tmp/sockets
+#    - /home/git/redmine/public
+#    - /home/git/redmine/public/uploads
 
-- name: ensure publicly accessible gitlab subdirectories exist and have correct permissions
-  file:
-    path: "{{ item }}"
-    owner: git
-    group: git
-    mode: 0755
-    state: directory
-  with_items:
-    - /home/git/gitlab/tmp
-    - /home/git/gitlab/tmp/sockets
-    - /home/git/gitlab/public
-    - /home/git/gitlab/public/uploads
+#- name: ensure private redmine subdirectories exist and have correct permissions
+#  file:
+#    path: "{{ item }}"
+#    owner: git
+#    group: git
+#    mode: 0750
+#    state: directory
+#  with_items:
+#    - /home/git/redmine/log
+#    - /home/git/redmine/tmp/pids
+#    - /home/git/redmine-satellites
 
-- name: ensure private gitlab subdirectories exist and have correct permissions
-  file:
-    path: "{{ item }}"
-    owner: git
-    group: git
-    mode: 0750
-    state: directory
-  with_items:
-    - /home/git/gitlab/log
-    - /home/git/gitlab/tmp/pids
-    - /home/git/gitlab-satellites
+#- name: ensure repository directories exist and have correct permissions
+#  file:
+#    path: "{{ item }}"
+#    owner: git
+#    group: git
+#    mode: 02770
+#    state: directory
+#  with_items:
+#    - /home/git/repositories
+#    - /home/git/repositories/root
 
-- name: ensure repository directories exist and have correct permissions
-  file:
-    path: "{{ item }}"
-    owner: git
-    group: git
-    mode: 02770
-    state: directory
-  with_items:
-    - /home/git/repositories
-    - /home/git/repositories/root
-
-- name: update gitlab configuration files from templates
-  template:
-    src: home/git/gitlab/{{ item }}
-    dest: /home/git/gitlab/{{ item }}
-    owner: git
-    group: git
-    mode: 0600
-  with_items:
-    - config/gitlab.yml
-    - config/database.yml
-    - config/unicorn.rb
-    - db/fixtures/production/001_admin.rb
-  notify:
-    - restart gitlab
+#- name: update redmine configuration files from templates
+#  template:
+#    src: home/git/redmine/{{ item }}
+#    dest: /home/git/redmine/{{ item }}
+#    owner: git
+#    group: git
+#    mode: 0600
+#  with_items:
+#    - config/redmine.yml
+#    - config/database.yml
+#    - config/unicorn.rb
+#    - db/fixtures/production/001_admin.rb
+#  notify:
+#    - restart redmine
 
 - name: bundle install ruby gems
-  sudo_user: git
-  shell: bundle install --deployment --without development test postgres aws && touch .bundle_installed
+  sudo_user: redmine
+  shell: bundle install --deployment --without development test && touch .bundle_installed
          executable=/bin/bash
-         chdir=/home/git/gitlab
-         creates=/home/git/gitlab/.bundle_installed
+         chdir=/srv/redmine
+         creates=/srv/redmine/.bundle_installed
 
-- name: install gitlab shell
-  sudo_user: git
-  shell: bundle exec rake gitlab:shell:install[v1.9.3] REDIS_URL=redis://localhost:6379 RAILS_ENV=production && touch .gitlab_shell_installed
+- name: generate secret token
+  sudo_user: redmine
+  shell: bundle exec rake generate_secret_token && touch .generate_secret_toeken
          executable=/bin/bash
-         chdir=/home/git/gitlab
-         creates=/home/git/gitlab/.gitlab_shell_installed
+         chdir=/srv/redmine
+         creates=/srv/redmine/.generate_secret_token
 
-- name: precompile assets
-  sudo_user: git
-  shell: bundle exec rake assets:precompile RAILS_ENV=production && touch .assets_precompiled
+- name: create database schema objects
+  sudo_user: redmine
+  shell: bundle exec rake db:migrate RAILS_ENV=production && touch .db_migrate
          executable=/bin/bash
-         chdir=/home/git/gitlab
-         creates=/home/git/gitlab/.assets_precompiled
+         chdir=/srv/redmine
+         creates=/srv/redmine/.db_migrate
 
-- name: initialize database
-  sudo_user: git
-  shell: bundle exec rake gitlab:setup RAILS_ENV=production <<< "yes" && touch .gitlab_db_setup
+- name: load default data
+  sudo_user: redmine
+  shell: bundle exec rake redmine:load_default_data RAILS_ENV=production && touch .load_default_data
          executable=/bin/bash
-         chdir=/home/git/gitlab
-         creates=/home/git/gitlab/.gitlab_db_setup
+         chdir=/srv/redmine
+         creates=/srv/redmine/.load_default_data
 
-- name: ensure gitlab links into /etc exist
-  file:
-    path: "{{ item.path }}"
-    src: "{{ item.src }}"
-    force: yes
-    state: link
-  with_items:
-    - { path: /etc/init.d/gitlab, src: /home/git/gitlab/lib/support/init.d/gitlab }
-    - { path: /etc/default/gitlab, src: /home/git/gitlab/lib/support/init.d/gitlab.default.example }
-    - { path: /etc/logrotate.d/gitlab, src: /home/git/gitlab/lib/support/logrotate/gitlab }
+#- name: precompile assets
+#  sudo_user: git
+#  shell: bundle exec rake assets:precompile RAILS_ENV=production && touch .assets_precompiled
+#         executable=/bin/bash
+#         chdir=/home/git/redmine
+#         creates=/home/git/redmine/.assets_precompiled
 
-- name: update /etc/nginx/sites-available/gitlab from template
-  template:
-    src: etc/nginx/sites-available/gitlab
-    dest: /etc/nginx/sites-available/gitlab
-    owner: root
-    group: root
-    mode: 0644
-  notify:
-    - restart nginx
+#- name: ensure redmine links into /etc exist
+#  file:
+#    path: "{{ item.path }}"
+#    src: "{{ item.src }}"
+#    force: yes
+#    state: link
+#  with_items:
+#    - { path: /etc/init.d/redmine, src: /home/git/redmine/lib/support/init.d/redmine }
+#    - { path: /etc/default/redmine, src: /home/git/redmine/lib/support/init.d/redmine.default.example }
+#    - { path: /etc/logrotate.d/redmine, src: /home/git/redmine/lib/support/logrotate/redmine }
 
-- name: ensure /etc/nginx/sites-enabled/gitlab exists and links to ../sites-available/gitlab
-  file:
-    path: /etc/nginx/sites-enabled/gitlab
-    src: ../sites-available/gitlab
-    force: yes
-    state: link
-  notify:
-    - restart nginx
+#- name: update /etc/nginx/sites-available/redmine from template
+#  template:
+#    src: etc/nginx/sites-available/redmine
+#    dest: /etc/nginx/sites-available/redmine
+#    owner: root
+#    group: root
+#    mode: 0644
+#  notify:
+#    - restart nginx
 
-- name: ensure that there is not a hostname collision with the nginx default host
-  lineinfile:
-    dest: /etc/nginx/sites-available/default
-    regexp: '^(\s+)(server_name {{ gitlab_hostname }};.*)$'
-    backrefs: yes
-    line: '\1#\2'
-    state: present
-  notify:
-    - restart nginx
+#- name: ensure /etc/nginx/sites-enabled/redmine exists and links to ../sites-available/redmine
+#  file:
+#    path: /etc/nginx/sites-enabled/redmine
+#    src: ../sites-available/redmine
+#    force: yes
+#    state: link
+#  notify:
+#    - restart nginx
 
-- name: ensure gitlab services are started and enabled
-  service:
-    name: "{{ item }}"
-    state: started
-    enabled: yes
-  with_items:
-    - gitlab
-    - nginx
+#- name: ensure that there is not a hostname collision with the nginx default host
+#  lineinfile:
+#    dest: /etc/nginx/sites-available/default
+#    regexp: '^(\s+)(server_name {{ redmine_hostname }};.*)$'
+#    backrefs: yes
+#    line: '\1#\2'
+#    state: present
+#  notify:
+#    - restart nginx
+
+#- name: ensure redmine services are started and enabled
+#  service:
+#    name: "{{ item }}"
+#    state: started
+#    enabled: yes
+#  with_items:
+#    - redmine
+#    - nginx
 
